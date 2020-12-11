@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 #include <Arduino.h>
 #include <Arduino_LSM9DS1.h>
+#include <Adafruit_BNO055.h>
 
 #include <TensorFlowLite.h>
 
