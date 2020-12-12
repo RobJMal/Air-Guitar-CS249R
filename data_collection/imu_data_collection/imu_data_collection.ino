@@ -1,5 +1,16 @@
 // Source https://learn.adafruit.com/adafruit-bno055-absolute-orientation-sensor/arduino-code
 
+/*
+  Script to collect data from Adafruit BNO055 IMU
+
+  Wiring:
+  3.3V (Red)  --> 3.3V rail/power supply
+  GND (Black) --> Board GND
+  SDA (Gray)  --> 18 (Teensy 4.1)
+  SCL (White) --> 19 (Teensy 4.1)
+
+*/
+
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
@@ -7,7 +18,7 @@
   
 Adafruit_BNO055 IMU = Adafruit_BNO055(55);
 
-const float ACCELERATION_RMS_THRESHOLD = 2.0;  // RMS (root mean square) threshold of significant motion in G's
+const float ACCELERATION_RMS_THRESHOLD = 5.0;  // RMS (root mean square) threshold of significant motion in G's
 const int NUM_CAPTURED_SAMPLES_PER_GESTURE = 50; // Sampling rate is 100 Hz, but strum lasts for 0.5 seconds
 const int NUM_FEATURES_PER_SAMPLE = 3;
 const int TOTAL_SAMPLES = NUM_CAPTURED_SAMPLES_PER_GESTURE * NUM_FEATURES_PER_SAMPLE;
@@ -103,6 +114,8 @@ void loop(void) {
     capturedSamples += NUM_FEATURES_PER_SAMPLE;
  }
 
+ Serial.println("Printing out the data: ");
+
   // print the samples
   for (int i = 0; i < TOTAL_SAMPLES; i += NUM_FEATURES_PER_SAMPLE) {
     // print the data in CSV format
@@ -111,8 +124,9 @@ void loop(void) {
     Serial.print(samples[i + 1], 3);
     Serial.print(',');
     Serial.print(samples[i + 2], 3);
+    Serial.println(); // empty line
 
-    delayMicroseconds(8403); // delay between each line for Serial Plotter, this matches the 119 Hz data rate of IMU
+    delayMicroseconds(1); // delay between each line for Serial Plotter, this matches the 119 Hz data rate of IMU
   }
 
   Serial.println(); // empty line
