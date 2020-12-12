@@ -46,7 +46,6 @@ void setup(void) {
 void loop(void) {
   float aX, aY, aZ;
 
-  
   // wait for threshold trigger, but keep N samples before threshold occurs
   while (1) {
 
@@ -114,9 +113,9 @@ void loop(void) {
     capturedSamples += NUM_FEATURES_PER_SAMPLE;
  }
 
+ // Printing out the samples
  Serial.println("Printing out the data: ");
 
-  // print the samples
   for (int i = 0; i < TOTAL_SAMPLES; i += NUM_FEATURES_PER_SAMPLE) {
     // print the data in CSV format
     Serial.print(samples[i + 0], 3);
@@ -126,9 +125,9 @@ void loop(void) {
     Serial.print(samples[i + 2], 3);
     Serial.println(); // empty line
 
-    delayMicroseconds(1); // delay between each line for Serial Plotter, this matches the 119 Hz data rate of IMU
+    delayMicroseconds(1); // delay between each line for Serial Plotter, creates nice formatting
   }
 
   Serial.println(); // empty line
-  delay(10000);
+  delay(20000); // How long to wait before restarting the data collection process 
 }
