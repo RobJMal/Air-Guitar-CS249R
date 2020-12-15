@@ -17,7 +17,7 @@ import serial
 ARDUINO_COM = 'COM7'
 ARDUINO_PORT = 9600
 DATA_DIR = "../../data/flex/"
-LABEL = "a"
+LABEL = "gm"
 
 
 arduino = serial.Serial('COM7', 9600, timeout=.1)
