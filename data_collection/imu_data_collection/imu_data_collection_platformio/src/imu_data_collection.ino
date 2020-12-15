@@ -18,7 +18,8 @@
   
 Adafruit_BNO055 IMU = Adafruit_BNO055(55);
 
-const float ACCELERATION_RMS_THRESHOLD = 5.0;  // RMS (root mean square) threshold of significant motion in G's
+const int PORT = 9600;
+const float ACCELERATION_RMS_THRESHOLD = 3.0;  // RMS (root mean square) threshold of significant motion in G's
 const int NUM_CAPTURED_SAMPLES_PER_GESTURE = 50; // Sampling rate is 100 Hz, but strum lasts for 0.5 seconds
 const int NUM_FEATURES_PER_SAMPLE = 3;
 const int TOTAL_SAMPLES = NUM_CAPTURED_SAMPLES_PER_GESTURE * NUM_FEATURES_PER_SAMPLE;
@@ -29,8 +30,9 @@ float samples[TOTAL_SAMPLES];
 int capturedSamples = 0;
 
 void setup(void) {
-  Serial.begin(9600);
-  Serial.println("Orientation Sensor Test"); Serial.println("");
+  Serial.begin(PORT);
+  Serial.println("Orientation Sensor Test"); 
+  Serial.println("");
   
   /* Initialise the sensor */
   if(!IMU.begin())
@@ -88,8 +90,6 @@ void loop(void) {
      }  
   }
 
-  Serial.println("Loop 1");
-
   // use the threshold index as the starting point for the remainder of the data
   capturedSamples = THRESHOLD_SAMPLE_INDEX + NUM_FEATURES_PER_SAMPLE;
 
@@ -113,8 +113,8 @@ void loop(void) {
     capturedSamples += NUM_FEATURES_PER_SAMPLE;
  }
 
- // Printing out the samples
- Serial.println("Printing out the data: ");
+  // Printing out the samples
+  Serial.println("START DATA");
 
   for (int i = 0; i < TOTAL_SAMPLES; i += NUM_FEATURES_PER_SAMPLE) {
     // print the data in CSV format
@@ -125,9 +125,9 @@ void loop(void) {
     Serial.print(samples[i + 2], 3);
     Serial.println(); // empty line
 
-    delayMicroseconds(1); // delay between each line for Serial Plotter, creates nice formatting
   }
 
-  Serial.println(); // empty line
-  delay(20000); // How long to wait before restarting the data collection process 
+  Serial.println(",,,"); // empty row
+  Serial.println("END DATA");
+  delay(1000); // How long to wait before restarting the data collection process 
 }
