@@ -65,7 +65,7 @@ const int PIN_MIDDLE = 16;
 const int PIN_RING = 15;
 const int PIN_PINKY = 14; 
 
-const int NUM_CAPTURED_SAMPLES_PER_GESTURE = 1920; // Sampling rate is 9600 Hz, but chord gesture lasts for 0.2 seconds
+const int NUM_CAPTURED_SAMPLES_PER_GESTURE = 200; // Sampling rate is 1000 Hz, but chord gesture lasts for 0.2 seconds
 const int NUM_FEATURES_PER_SAMPLE = 4; // four fingers
 const int TOTAL_DATA_POINTS = NUM_CAPTURED_SAMPLES_PER_GESTURE * NUM_FEATURES_PER_SAMPLE;
 
@@ -98,10 +98,11 @@ void loop()
     data[index++] = analogRead(PIN_MIDDLE);
     data[index++] = analogRead(PIN_RING);
     data[index++] = analogRead(PIN_PINKY);
+    delay(1); /* actual sample rate is 9600 Hz, artficially make it 1000 Hz */
   }
 
   Serial.println("Printing data...");
-  Serial.print("START DATA");
+  Serial.println("START DATA");
   index = 0;
   for (int base = 0; base < TOTAL_DATA_POINTS; base += NUM_FEATURES_PER_SAMPLE) {
     for (int i = 0; i < NUM_FEATURES_PER_SAMPLE; i++) {
@@ -116,5 +117,4 @@ void loop()
   Serial.println("END DATA");
 
   Serial.println("New loop...");
-  delay(1000);
 } 
