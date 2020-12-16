@@ -20,7 +20,10 @@ limitations under the License.
 #include "main_functions.h"
 
 #include "tensorflow/lite/micro/all_ops_resolver.h"
+
 #include "motion_model.h"
+#include "chord_model.h"
+
 #include "tensorflow/lite/micro/micro_error_reporter.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/schema/schema_generated.h"
@@ -28,31 +31,60 @@ limitations under the License.
 
 // Globals, used for compatibility with Arduino-style sketches.
 namespace {
-tflite::ErrorReporter* error_reporter = nullptr;
+Adafruit_BNO055 IMU = Adafruit_BNO055(55);
+
+// STRUM DETECTION GLOBALS
+tflite::ErrorReporter* error_reporter_motion = nullptr;
 const tflite::Model* motion_model = nullptr;
 tflite::MicroInterpreter* motion_interpreter = nullptr;
 TfLiteTensor* motion_input_tensor = nullptr;
 TfLiteTensor* motion_output_tensor = nullptr;
-int input_length;
+int input_length_motion;
 
-const float ACCELERATION_RMS_THRESHOLD = 1.5;  // RMS (root mean square) threshold of significant motion in G's
-const int NUM_CAPTURED_SAMPLES_PER_GESTURE = 59;
-const int NUM_FEATURES_PER_SAMPLE = 6;
-const int TOTAL_SAMPLES = NUM_CAPTURED_SAMPLES_PER_GESTURE * NUM_FEATURES_PER_SAMPLE;
-const int THRESHOLD_SAMPLE_INDEX =  ((NUM_CAPTURED_SAMPLES_PER_GESTURE / 3) * NUM_FEATURES_PER_SAMPLE); // one-third of data comes before threshold
-int capturedSamples = 0;
+const float ACCELERATION_RMS_THRESHOLD = 5.0;  // RMS (root mean square) threshold of significant motion in G's
+const int SENSOR_SAMPLING_RATE_IMU = 100;
+const float GESTURE_DURATION_IMU = 0.5;
+const int NUM_CAPTURED_SAMPLES_PER_GESTURE_IMU = GESTURE_DURATION_IMU * SENSOR_SAMPLING_RATE_IMU;
+const int NUM_FEATURES_PER_SAMPLE_IMU = 3;
+const int TOTAL_SAMPLES_IMU = NUM_CAPTURED_SAMPLES_PER_GESTURE_IMU * NUM_FEATURES_PER_SAMPLE_IMU;
+const int SENSOR_SAMPLING_SEPARATION_IMU = 1000 / SENSOR_SAMPLING_RATE_IMU ;
+const int THRESHOLD_SAMPLE_INDEX_IMU =  ((NUM_CAPTURED_SAMPLES_PER_GESTURE_IMU / 3) * NUM_FEATURES_PER_SAMPLE_IMU); // one-third of data comes before threshold
+int capturedSamplesIMU = 0;
 
 // Create an area of memory to use for input, output, and intermediate arrays.
 // Minimum arena size, at the time of writing. After allocating tensors
 // you can retrieve this value by invoking interpreter.arena_used_bytes().
-const int kModelArenaSize = 16*1024;
+const int kModelArenaSize_motion = 16*1024;
 // Extra headroom for model + alignment + future interpreter changes.
-const int kExtraArenaSize = 560 + 16 + 100;
-const int kTensorArenaSize = kModelArenaSize + kExtraArenaSize;
-uint8_t tensor_arena[kTensorArenaSize];
+const int kExtraArenaSize_motion = 560 + 16 + 100;
+const int kTensorArenaSize_motion = kModelArenaSize_motion + kExtraArenaSize_motion;
+uint8_t tensor_arena_motion[kTensorArenaSize_motion];
+
+
+// CHORD DETECTION GLOBALS 
+tflite::ErrorReporter* error_reporter_chord = nullptr;
+const tflite::Model* chord_model = nullptr;
+tflite::MicroInterpreter* chord_interpreter = nullptr;
+TfLiteTensor* chord_input_tensor = nullptr;
+TfLiteTensor* chord_output_tensor = nullptr;
+int input_length_chord; 
+
+const int NUM_CAPTURED_SAMPLES_PER_GESTURE_FLEX = 200; // Sampling rate is 1000 Hz, but chord gesture lasts for 0.2 seconds
+const int NUM_FEATURES_PER_SAMPLE_FLEX = 4; // four fingers
+const int TOTAL_DATA_POINTS_FLEX = NUM_CAPTURED_SAMPLES_PER_GESTURE_FLEX * NUM_FEATURES_PER_SAMPLE_FLEX;
+int data[TOTAL_DATA_POINTS_FLEX];
+
+const int kModelArenaSize_chord = 16*1024;
+const int kExtraArenaSize_chord = 560 + 16 + 100;
+const int kTensorArenaSize_chord = kModelArenaSize_chord + kExtraArenaSize_chord;
+uint8_t tensor_arena_chord[kTensorArenaSize_chord];
+
 
 unsigned long time_before; //the Arduino function millis(), that we use to time out model, returns a unsigned long.
 unsigned long time_after;
+unsigned long data_time_before;
+unsigned long data_time_after;
+unsigned long data_duration;
 }  // namespace
 
 // The name of this function is important for Arduino compatibility.
@@ -60,14 +92,14 @@ void setup() {
   // Set up logging. Google style is to avoid globals or statics because of
   // lifetime uncertainty, but since this has a trivial destructor it's okay.
   // NOLINTNEXTLINE(runtime-global-variables)
-  static tflite::MicroErrorReporter micro_error_reporter;
-  error_reporter = &micro_error_reporter;
+  static tflite::MicroErrorReporter micro_error_reporter_motion;
+  error_reporter_motion = &micro_error_reporter_motion;
 
   if (!IMU.begin()) {
-    TF_LITE_REPORT_ERROR(error_reporter,"Failed to initialize IMU!");
+    TF_LITE_REPORT_ERROR(error_reporter_motion,"Failed to initialize IMU!");
     while (1);
   }
-  TF_LITE_REPORT_ERROR(error_reporter,
+  TF_LITE_REPORT_ERROR(error_reporter_motion,
                       "Accelerometer sample rate:%f Hz, Gyroscope sample rate:%f Hz", 
                       IMU.accelerationSampleRate(),
                       IMU.gyroscopeSampleRate());
@@ -77,7 +109,7 @@ void setup() {
   // copying or parsing, it's a very lightweight operation.
   motion_model = tflite::GetModel(g_motion_model);
   if (motion_model->version() != TFLITE_SCHEMA_VERSION) {
-    TF_LITE_REPORT_ERROR(error_reporter,
+    TF_LITE_REPORT_ERROR(error_reporter_motion,
                          "Model provided is schema version %d not equal "
                          "to supported version %d.",
                          motion_model->version(), TFLITE_SCHEMA_VERSION);
@@ -88,19 +120,19 @@ void setup() {
 
 
   static tflite::MicroInterpreter static_interpreter(
-      motion_model, resolver, tensor_arena, kTensorArenaSize, error_reporter);
+      motion_model, resolver, tensor_arena_motion, kTensorArenaSize_motion, error_reporter_motion);
   motion_interpreter = &static_interpreter;
 
 
   TfLiteStatus allocate_status = motion_interpreter->AllocateTensors();
   if (allocate_status != kTfLiteOk) {
-    TF_LITE_REPORT_ERROR(error_reporter, "interpreter: AllocateTensors() failed");
+    TF_LITE_REPORT_ERROR(error_reporter_motion, "interpreter: AllocateTensors() failed");
     return;
   }
 
   motion_input_tensor = motion_interpreter->input(0);
 
-  input_length = motion_input_tensor->bytes / sizeof(float);
+  input_length_motion = motion_input_tensor->bytes / sizeof(float);
 
   motion_output_tensor = motion_interpreter->output(0);
 }
@@ -118,15 +150,15 @@ float aX, aY, aZ, gX, gY, gZ;
       IMU.readGyroscope(gX, gY, gZ);
 
       // shift values over one position (TODO: replace memmove with for loop?)
-      memmove(motion_input_tensor->data.f, motion_input_tensor->data.f + NUM_FEATURES_PER_SAMPLE, sizeof(float) * NUM_FEATURES_PER_SAMPLE * 39);
+      memmove(motion_input_tensor->data.f, motion_input_tensor->data.f + NUM_FEATURES_PER_SAMPLE_IMU, sizeof(float) * NUM_FEATURES_PER_SAMPLE_IMU * 39);
 
       // insert the new data at the threshold index
-      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 0] = (aX + 4.0) / 8.0;
-      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 1] = (gX + 2000.0) / 4000.0;
-      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 2] = (aY + 4.0) / 8.0;
-      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 3] = (gY + 2000.0) / 4000.0;
-      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 4] = (aZ + 4.0) / 8.0;
-      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 5] = (gZ + 2000.0) / 4000.0;
+      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX_IMU + 0] = (aX + 4.0) / 8.0;
+      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX_IMU + 1] = (gX + 2000.0) / 4000.0;
+      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX_IMU + 2] = (aY + 4.0) / 8.0;
+      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX_IMU + 3] = (gY + 2000.0) / 4000.0;
+      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX_IMU + 4] = (aZ + 4.0) / 8.0;
+      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX_IMU + 5] = (gZ + 2000.0) / 4000.0;
 
       // calculate the RMS of the acceleration
       float accelerationRMS =  sqrt(fabs(aX) + fabs(aY) + fabs(aZ));
@@ -139,10 +171,10 @@ float aX, aY, aZ, gX, gY, gZ;
   }
 
   // use the threshold index as the starting point for the remainder of the data
-  capturedSamples = THRESHOLD_SAMPLE_INDEX + NUM_FEATURES_PER_SAMPLE;
+  capturedSamplesIMU = THRESHOLD_SAMPLE_INDEX_IMU + NUM_FEATURES_PER_SAMPLE_IMU;
 
   // collect the remaining samples
-  while (capturedSamples < TOTAL_SAMPLES) {
+  while (capturedSamplesIMU < TOTAL_SAMPLES_IMU) {
     // wait for both acceleration and gyroscope data to be available
     if (IMU.accelerationAvailable() && IMU.gyroscopeAvailable()) {
       // read the acceleration and gyroscope data
@@ -150,14 +182,14 @@ float aX, aY, aZ, gX, gY, gZ;
       IMU.readGyroscope(gX, gY, gZ);
 
       // insert the new data at the threshold index
-      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 0] = (aX + 4.0) / 8.0;
-      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 1] = (gX + 2000.0) / 4000.0;
-      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 2] = (aY + 4.0) / 8.0;
-      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 3] = (gY + 2000.0) / 4000.0;
-      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 4] = (aZ + 4.0) / 8.0;
-      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 5] = (gZ + 2000.0) / 4000.0;
+      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX_IMU + 0] = (aX + 4.0) / 8.0;
+      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX_IMU + 1] = (gX + 2000.0) / 4000.0;
+      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX_IMU + 2] = (aY + 4.0) / 8.0;
+      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX_IMU + 3] = (gY + 2000.0) / 4000.0;
+      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX_IMU + 4] = (aZ + 4.0) / 8.0;
+      motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX_IMU + 5] = (gZ + 2000.0) / 4000.0;
 
-      capturedSamples += NUM_FEATURES_PER_SAMPLE;
+      capturedSamplesIMU += NUM_FEATURES_PER_SAMPLE_IMU;
     }
   }
 
@@ -167,7 +199,7 @@ float aX, aY, aZ, gX, gY, gZ;
   time_after = millis();
 
   if (invoke_status != kTfLiteOk) {
-    TF_LITE_REPORT_ERROR(error_reporter,"Invoke failed!");
+    TF_LITE_REPORT_ERROR(error_reporter_motion,"Invoke failed!");
     while (1);
     return;
   }
@@ -182,8 +214,8 @@ float aX, aY, aZ, gX, gY, gZ;
     }
   }
 
-  TF_LITE_REPORT_ERROR(error_reporter, "Time Stamp: %d", time_after);
-  TF_LITE_REPORT_ERROR(error_reporter, "Gesture: %s", GESTURES[max_index]);
-  TF_LITE_REPORT_ERROR(error_reporter, "Invoke time (mS): %d", time_after-time_before);
-  TF_LITE_REPORT_ERROR(error_reporter, "Memory Consumption (bytes): %d", motion_interpreter->arena_used_bytes());
+  TF_LITE_REPORT_ERROR(error_reporter_motion, "Time Stamp: %d", time_after);
+  TF_LITE_REPORT_ERROR(error_reporter_motion, "Gesture: %s", GESTURES[max_index]);
+  TF_LITE_REPORT_ERROR(error_reporter_motion, "Invoke time (mS): %d", time_after-time_before);
+  TF_LITE_REPORT_ERROR(error_reporter_motion, "Memory Consumption (bytes): %d", motion_interpreter->arena_used_bytes());
 }
