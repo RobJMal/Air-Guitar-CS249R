@@ -95,14 +95,18 @@ void setup() {
   static tflite::MicroErrorReporter micro_error_reporter_motion;
   error_reporter_motion = &micro_error_reporter_motion;
 
+  static tflite::MicroErrorReporter micro_error_reporter_chord;
+  error_reporter_chord = &micro_error_reporter_chord;
+
+  // Flex sensors automatically initialize, check output values on serial monitor however
   if (!IMU.begin()) {
     TF_LITE_REPORT_ERROR(error_reporter_motion,"Failed to initialize IMU!");
     while (1);
   }
-  TF_LITE_REPORT_ERROR(error_reporter_motion,
-                      "Accelerometer sample rate:%f Hz, Gyroscope sample rate:%f Hz", 
-                      IMU.accelerationSampleRate(),
-                      IMU.gyroscopeSampleRate());
+  // TF_LITE_REPORT_ERROR(error_reporter_motion,
+  //                     "Accelerometer sample rate:%f Hz, Gyroscope sample rate:%f Hz", 
+  //                     IMU.accelerationSampleRate(),
+  //                     IMU.gyroscopeSampleRate());
 
 
   // Map the model into a usable data structure. This doesn't involve any
@@ -116,30 +120,55 @@ void setup() {
     return;
   }
 
-  static tflite::AllOpsResolver resolver;
+  chord_model = tflite::GetModel(c_motion_model);
+  if (chord_model->version() != TFLITE_SCHEMA_VERSION) {
+    TF_LITE_REPORT_ERROR(error_reporter_chord,
+                          "Model provided is a schema version %d not equal"
+                          "to supported version %d.",
+                          chord_model->version(), TFLITE_SCHEMA_VERSION);
+  }
 
 
-  static tflite::MicroInterpreter static_interpreter(
-      motion_model, resolver, tensor_arena_motion, kTensorArenaSize_motion, error_reporter_motion);
-  motion_interpreter = &static_interpreter;
+  static tflite::AllOpsResolver resolver_motion;
+  static tflite::AllOpsResolver resolver_chord; 
+
+  static tflite::MicroInterpreter static_interpreter_motion(
+      motion_model, resolver_motion, tensor_arena_motion, kTensorArenaSize_motion, error_reporter_motion);
+  motion_interpreter = &static_interpreter_motion;
+
+  static tflite::MicroInterpreter static_interpreter_chord(
+      chord_model, resolver_chord, tensor_arena_chord, kTensorArenaSize_chord, error_reporter_chord);
+  chord_interpreter = &static_interpreter_chord; 
 
 
-  TfLiteStatus allocate_status = motion_interpreter->AllocateTensors();
-  if (allocate_status != kTfLiteOk) {
-    TF_LITE_REPORT_ERROR(error_reporter_motion, "interpreter: AllocateTensors() failed");
+  TfLiteStatus allocate_status_motion = motion_interpreter->AllocateTensors();
+  if (allocate_status_motion != kTfLiteOk) {
+    TF_LITE_REPORT_ERROR(error_reporter_motion, "interpreter: AllocateTensors() failed (strum)");
     return;
   }
 
+  TfLiteStatus allocate_status_chord = chord_interpreter-> AllocateTensors();
+  if (allocate_status_chord != kTfLiteOk) {
+    TF_LITE_REPORT_ERROR(error_reporter_chord, "interpreter: AllocateTensors() failed (chord)");
+  }
+
+  // I/O tensors for strum detect 
   motion_input_tensor = motion_interpreter->input(0);
-
   input_length_motion = motion_input_tensor->bytes / sizeof(float);
-
   motion_output_tensor = motion_interpreter->output(0);
+
+  // I/O tensors for chord detect
+  chord_input_tensor = chord_interpreter->input(0);
+  input_length_chord = chord_input_tensor->bytes / sizeof(float);
+  chord_output_tensor = chord_interpreter->output(0); 
 }
 
 // The name of this function is important for Arduino compatibility.
 void loop() {
-float aX, aY, aZ, gX, gY, gZ;
+
+  // FIRST, WANT TO DETECT THE FLEX SENSORS 
+
+  float aX, aY, aZ, gX, gY, gZ;
 
   // wait for threshold trigger, but keep N samples before threshold occurs
   while (1) {
