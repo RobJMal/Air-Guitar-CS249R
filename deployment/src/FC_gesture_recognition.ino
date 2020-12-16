@@ -40,9 +40,12 @@ TfLiteTensor* motion_output_tensor = nullptr;
 int input_length;
 
 const float ACCELERATION_RMS_THRESHOLD = 5.0;  // RMS (root mean square) threshold of significant motion in G's
-const int NUM_CAPTURED_SAMPLES_PER_GESTURE = 50;
+const int SENSOR_SAMPLING_RATE = 100;
+const float GESTURE_DURATION = 0.5;
+const int NUM_CAPTURED_SAMPLES_PER_GESTURE = GESTURE_DURATION * SENSOR_SAMPLING_RATE;
 const int NUM_FEATURES_PER_SAMPLE = 3;
 const int TOTAL_SAMPLES = NUM_CAPTURED_SAMPLES_PER_GESTURE * NUM_FEATURES_PER_SAMPLE;
+const int SENSOR_SAMPLING_SEPARATION = 1000 / SENSOR_SAMPLING_RATE ;
 const int THRESHOLD_SAMPLE_INDEX =  ((NUM_CAPTURED_SAMPLES_PER_GESTURE / 3) * NUM_FEATURES_PER_SAMPLE); // one-third of data comes before threshold
 int capturedSamples = 0;
 
@@ -57,6 +60,9 @@ uint8_t tensor_arena[kTensorArenaSize];
 
 unsigned long time_before; //the Arduino function millis(), that we use to time out model, returns a unsigned long.
 unsigned long time_after;
+unsigned long data_time_before;
+unsigned long data_time_after;
+unsigned long data_duration;
 }  // namespace
 
 // The name of this function is important for Arduino compatibility.
@@ -119,6 +125,7 @@ float aX, aY, aZ;
   // wait for threshold trigger, but keep N samples before threshold occurs
   while (1) {
     // Accesses the IMU
+    data_time_before = millis();
     sensors_event_t event;
     IMU.getEvent(&event);
     imu::Vector<3> linearaccel = IMU.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
@@ -127,6 +134,12 @@ float aX, aY, aZ;
     aX = linearaccel.x();
     aY = linearaccel.y();
     aZ = linearaccel.z();
+    data_time_after = millis();
+
+    data_duration = data_time_after - data_time_before;
+    if (data_duration < SENSOR_SAMPLING_SEPARATION) {
+      delay(SENSOR_SAMPLING_SEPARATION - data_duration);
+    }
 
     // shift values over one position (TODO: replace memmove with for loop?)
     memmove(motion_input_tensor->data.f, motion_input_tensor->data.f + NUM_FEATURES_PER_SAMPLE, sizeof(float) * NUM_FEATURES_PER_SAMPLE * 39);
@@ -157,7 +170,7 @@ float aX, aY, aZ;
   // collect the remaining samples
   while (capturedSamples < TOTAL_SAMPLES) {
     // Accesses the IMU
-    time_before = millis();
+    data_time_before = millis();
     sensors_event_t event;
     IMU.getEvent(&event);
     imu::Vector<3> linearaccel = IMU.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
@@ -165,8 +178,12 @@ float aX, aY, aZ;
     aX = linearaccel.x();
     aY = linearaccel.y();
     aZ = linearaccel.z();
-    time_after = millis();
-    error_reporter->Report("Time in between actually %d ms", time_after-time_before);
+    data_time_after = millis();
+    
+    data_duration = data_time_after - data_time_before;
+    if (data_duration < SENSOR_SAMPLING_SEPARATION) {
+      delay(SENSOR_SAMPLING_SEPARATION - data_duration);
+    }
 
     // insert the new data
     motion_input_tensor->data.f[capturedSamples + 0] = aX;
