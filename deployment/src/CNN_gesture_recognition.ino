@@ -216,10 +216,10 @@ void loop() {
 
   // Run chord model inferencing 
   time_before = millis();
-  TfLiteStatus invoke_status = chord_interpreter->Invoke();
+  TfLiteStatus invoke_status_chord = chord_interpreter->Invoke();
   time_after = millis();
 
-  if (invoke_status != kTfLiteOk) {
+  if (invoke_status_chord != kTfLiteOk) {
     TF_LITE_REPORT_ERROR(error_reporter_chord,"Invoke failed!");
     while (1);
     return;
@@ -309,10 +309,10 @@ void loop() {
 
   // Run inferencing
   time_before = millis();
-  TfLiteStatus invoke_status = motion_interpreter->Invoke();
+  TfLiteStatus invoke_status_chord = motion_interpreter->Invoke();
   time_after = millis();
 
-  if (invoke_status != kTfLiteOk) {
+  if (invoke_status_chord != kTfLiteOk) {
     TF_LITE_REPORT_ERROR(error_reporter_motion,"Invoke failed!");
     while (1);
     return;
@@ -338,14 +338,14 @@ void loop() {
   // Playing the air guitar if strum is detected based on previous chord classified
   char chord_filename[8];
 
-  if (GESTURES[max_index] == "strum") {
+  if (GESTURES[max_index][0] == 's') {
     if (playSdWav1.isPlaying() == false) {
       TF_LITE_REPORT_ERROR(error_reporter_chord, "Start playing");
 
       strcat(chord_filename, chord_to_play);
       strcat(chord_filename, ".WAV");
       playSdWav1.play(chord_filename);
-      
+
       delay(10);
     }
 
