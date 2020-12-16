@@ -1,0 +1,4 @@
+Base model, renormalized with max and min of the data.
+
+Model is 21688 bytes
+Header file, model.h, is 133,806 bytes.

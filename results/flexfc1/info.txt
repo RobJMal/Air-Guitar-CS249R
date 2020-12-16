@@ -1,0 +1,4 @@
+Flex Base Model, using normalization with full range of flex sensor values, not max/min
+
+Model is 100428 bytes
+Header file, model.h, is 619,368 bytes.

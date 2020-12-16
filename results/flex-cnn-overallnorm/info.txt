@@ -1,0 +1,4 @@
+Flex CNN, normalized over all sensors, all data
+
+Model is 28292 bytes
+Header file, model.h, is 174,530 bytes.

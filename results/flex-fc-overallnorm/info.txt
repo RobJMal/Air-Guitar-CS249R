@@ -1,0 +1,4 @@
+Flex FC, tensor normalized with overall max/min values (considering all files, all fingers)
+
+Model is 100428 bytes
+Header file, model.h, is 619,368 bytes.

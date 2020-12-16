@@ -1,0 +1,4 @@
+Strum with CNN, using max/min of data to normalize
+
+Model is 11160 bytes
+Header file, model.h, is 68,882 bytes.
