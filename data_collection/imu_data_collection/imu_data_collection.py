@@ -17,11 +17,11 @@ import serial
 
 ARDUINO_COM = 'COM7'
 ARDUINO_PORT = 9600
-DATA_DIR = "../../data/imu/"
-LABEL = "strum"
+DATA_DIR = "../../data/new_imu/"
+LABEL = "no_strum"
 
 
-arduino = serial.Serial('COM7', 9600, timeout=.1)
+arduino = serial.Serial(ARDUINO_COM, ARDUINO_PORT, timeout=.1)
 print_to_file = False
 
 with open(DATA_DIR+LABEL+".csv", "ab") as f:
