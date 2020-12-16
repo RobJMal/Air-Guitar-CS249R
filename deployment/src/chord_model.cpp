@@ -3,19 +3,19 @@
 
 // array to map gesture index to a name
 const char* CHORDS[] = {
-  "A",
-  "Am",
-  "B",
-  "Bm",
-  "C",
-  "Cm",
-  "D",
-  "Dm",
-  "E",
-  "Em",
-  "F",
-  "G",
-  "Gm"
+  "a",
+  "am",
+  "b",
+  "bm",
+  "c",
+  "cm",
+  "d",
+  "dm",
+  "e",
+  "em",
+  "f",
+  "g",
+  "gm"
 };
 
 const int num_chords =  (sizeof(CHORDS) / sizeof(CHORDS[0]));
