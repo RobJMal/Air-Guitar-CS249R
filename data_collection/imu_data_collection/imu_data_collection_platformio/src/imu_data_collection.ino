@@ -20,8 +20,12 @@ Adafruit_BNO055 IMU = Adafruit_BNO055(55);
 
 const int PORT = 9600;
 const float ACCELERATION_RMS_THRESHOLD = 3.0;  // RMS (root mean square) threshold of significant motion in G's
-const int NUM_CAPTURED_SAMPLES_PER_GESTURE = 50; // Sampling rate is 100 Hz, but strum lasts for 0.5 seconds
+const int SENSOR_SAMPLING_RATE = 100;
+const float GESTURE_DURATION = 0.5;
 const int NUM_FEATURES_PER_SAMPLE = 3;
+
+const int NUM_CAPTURED_SAMPLES_PER_GESTURE = GESTURE_DURATION * SENSOR_SAMPLING_RATE; // Sampling rate is 100 Hz, but strum lasts for 0.5 seconds
+const int SENSOR_SAMPLING_SEPARATION = 1000 / SENSOR_SAMPLING_RATE ;
 const int TOTAL_SAMPLES = NUM_CAPTURED_SAMPLES_PER_GESTURE * NUM_FEATURES_PER_SAMPLE;
 const int THRESHOLD_SAMPLE_INDEX =  ((NUM_CAPTURED_SAMPLES_PER_GESTURE / 3) * NUM_FEATURES_PER_SAMPLE); // one-third of data comes before threshold
 
@@ -47,31 +51,27 @@ void setup(void) {
  
 void loop(void) {
   float aX, aY, aZ;
+  unsigned long time_before, time_after, duration;
 
   // wait for threshold trigger, but keep N samples before threshold occurs
   while (1) {
 
     // Accesses the IMU
+    time_before = millis();
     sensors_event_t event;
     IMU.getEvent(&event);
     imu::Vector<3> linearaccel = IMU.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL );
-    
     // reading accleration data 
     aX = linearaccel.x();
     aY = linearaccel.y();
     aZ = linearaccel.z();
-    
-    // Displaying the floating point data 
-    Serial.print("X: ");
-    Serial.print(aX);
-    Serial.print(" Y: ");
-    Serial.print(aY);
-    Serial.print(" Z: ");
-    Serial.print(aZ);
-    Serial.println("");
-    
-    delay(100);
+    time_after = millis();
 
+    duration = time_after - time_before;
+    if (duration < SENSOR_SAMPLING_SEPARATION) {
+      delay(SENSOR_SAMPLING_SEPARATION - duration);
+    }
+    
     // shift values over one position (TODO: replace memmove with for loop?)
     memmove(samples, samples + NUM_FEATURES_PER_SAMPLE, sizeof(float) * NUM_FEATURES_PER_SAMPLE * 39);
 
@@ -85,7 +85,6 @@ void loop(void) {
 
      if (accelerationRMS > ACCELERATION_RMS_THRESHOLD) {
       // threshold reached, break the loop
-      Serial.println("Reached threshold");
       break;
      }  
   }
@@ -95,15 +94,22 @@ void loop(void) {
 
   // collect the remaining samples
   while (capturedSamples < TOTAL_SAMPLES) {    
+    time_before = millis();
     // Accesses the IMU
     sensors_event_t event;
     IMU.getEvent(&event);
     imu::Vector<3> linearaccel = IMU.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL );
-
     // reading accleration data 
     aX = linearaccel.x();
     aY = linearaccel.y();
     aZ = linearaccel.z();
+    time_after = millis();
+
+    duration = time_after - time_before;
+    
+    if (duration < SENSOR_SAMPLING_SEPARATION) {
+      delay(SENSOR_SAMPLING_SEPARATION - duration);
+    }
 
     // insert the new data
     samples[capturedSamples + 0] = aX;
