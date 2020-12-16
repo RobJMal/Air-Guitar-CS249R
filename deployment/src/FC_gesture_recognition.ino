@@ -161,13 +161,12 @@ float aX, aY, aZ;
     sensors_event_t event;
     IMU.getEvent(&event);
     imu::Vector<3> linearaccel = IMU.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
-    time_after = millis();
-    error_reporter->Report("Time in between actually %d ms", time_after-time_before);
-
     // reading accleration data 
     aX = linearaccel.x();
     aY = linearaccel.y();
     aZ = linearaccel.z();
+    time_after = millis();
+    error_reporter->Report("Time in between actually %d ms", time_after-time_before);
 
     // insert the new data
     motion_input_tensor->data.f[capturedSamples + 0] = aX;
