@@ -60,8 +60,7 @@ void setup() {
 void loop() {
   if (playSdWav1.isPlaying() == false) {
     Serial.println("Start playing");
-    playSdWav1.play("SDTEST0.WAV");
-//    playSdWav1.play("sample_music/SDTEST1.WAV");
+    playSdWav1.play("Am_chord.WAV");
     delay(10); // wait for library to parse WAV info
   }
 
