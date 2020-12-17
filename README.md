@@ -58,15 +58,28 @@ and pinky, in that order. A 1 signifies that the finger is held straight, while 
 Using this encoding, the following are the gestures for each of the supported Chords:
 
 a: 0001
+
 am: 1001
+
 b: 1000
+
 bm: 1111
+
 c: 0110
+
 cm: 1011
+
 d: 0010
+
 dm: 0100
+
 e: 0000
+
 em: 1100
+
 f: 1101
+
 g: 1101
+
 gm: 1010
+
