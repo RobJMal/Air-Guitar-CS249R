@@ -133,7 +133,7 @@ void loop(void) {
 
   }
 
-  Serial.println(",,,"); // empty row
+  Serial.println(",,"); // empty row
   Serial.println("END DATA");
   delay(1000); // How long to wait before restarting the data collection process 
 }
