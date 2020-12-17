@@ -39,7 +39,7 @@ TfLiteTensor* motion_input_tensor = nullptr;
 TfLiteTensor* motion_output_tensor = nullptr;
 int input_length;
 
-const float ACCELERATION_RMS_THRESHOLD = 5.0;  // RMS (root mean square) threshold of significant motion in G's
+const float ACCELERATION_RMS_THRESHOLD = 3.0;  // RMS (root mean square) threshold of significant motion in G's
 const int SENSOR_SAMPLING_RATE = 100;
 const float GESTURE_DURATION = 0.5;
 const int NUM_CAPTURED_SAMPLES_PER_GESTURE = GESTURE_DURATION * SENSOR_SAMPLING_RATE;
@@ -48,6 +48,10 @@ const int TOTAL_SAMPLES = NUM_CAPTURED_SAMPLES_PER_GESTURE * NUM_FEATURES_PER_SA
 const int SENSOR_SAMPLING_SEPARATION = 1000 / SENSOR_SAMPLING_RATE ;
 const int THRESHOLD_SAMPLE_INDEX =  ((NUM_CAPTURED_SAMPLES_PER_GESTURE / 3) * NUM_FEATURES_PER_SAMPLE); // one-third of data comes before threshold
 int capturedSamples = 0;
+
+const float DATA_MIN_VALUE = -48.89;
+const float DATA_MAX_VALUE = 41.48;
+const float DATA_DELTA = DATA_MAX_VALUE - DATA_MIN_VALUE;
 
 // Create an area of memory to use for input, output, and intermediate arrays.
 // Minimum arena size, at the time of writing. After allocating tensors
@@ -145,9 +149,9 @@ float aX, aY, aZ;
     memmove(motion_input_tensor->data.f, motion_input_tensor->data.f + NUM_FEATURES_PER_SAMPLE, sizeof(float) * NUM_FEATURES_PER_SAMPLE * 39);
 
     // insert the new data at the threshold index
-    motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 0] = aX;
-    motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 1] = aY;
-    motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 2] = aZ;
+    motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 0] = (aX - DATA_MIN_VALUE) / DATA_DELTA;
+    motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 1] = (aY - DATA_MIN_VALUE) / DATA_DELTA;
+    motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 2] = (aZ - DATA_MIN_VALUE) / DATA_DELTA;
     // motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 3] = (gX + 2000.0) / 4000.0;
     // motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 4] = (gY + 2000.0) / 4000.0;
     // motion_input_tensor->data.f[THRESHOLD_SAMPLE_INDEX + 5] = (gZ + 2000.0) / 4000.0;
@@ -186,9 +190,9 @@ float aX, aY, aZ;
     }
 
     // insert the new data
-    motion_input_tensor->data.f[capturedSamples + 0] = aX;
-    motion_input_tensor->data.f[capturedSamples + 1] = aY;
-    motion_input_tensor->data.f[capturedSamples + 2] = aZ;
+    motion_input_tensor->data.f[capturedSamples + 0] = (aX - DATA_MIN_VALUE) / DATA_DELTA;
+    motion_input_tensor->data.f[capturedSamples + 1] = (aY - DATA_MIN_VALUE) / DATA_DELTA;
+    motion_input_tensor->data.f[capturedSamples + 2] = (aZ - DATA_MIN_VALUE) / DATA_DELTA;
 
     capturedSamples += NUM_FEATURES_PER_SAMPLE;
   }
