@@ -1,0 +1,4 @@
+Strum CNN, only 1 FC layer, right before output. Normalized over data's overall min/max
+
+Model is 5136 bytes
+Header file, model.h, is 31,734 bytes.

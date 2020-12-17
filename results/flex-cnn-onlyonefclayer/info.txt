@@ -1,0 +1,4 @@
+Flex CNN, only one FC layer right before outputting layer
+
+Model is 22796 bytes
+Header file, model.h, is 140,638 bytes.
