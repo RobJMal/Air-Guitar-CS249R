@@ -113,7 +113,7 @@ void loop()
     }
     Serial.println();
   }
-  Serial.println(",,,,");
+  Serial.println(",,,");
   Serial.println("END DATA");
 
   Serial.println("New loop...");
