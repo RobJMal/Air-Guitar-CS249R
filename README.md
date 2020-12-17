@@ -83,3 +83,6 @@ g: 1101
 
 gm: 1010
 
+## Hardware Design and Setup
+
+This project uses sensors attached to gloves to collect the data and run the application. 
