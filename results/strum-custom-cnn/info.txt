@@ -1,0 +1,4 @@
+Strum Custom CNN, inspired by related work
+
+Model is 23936 bytes
+Header file, model.h, is 147,668 bytes.
