@@ -58,7 +58,7 @@ const float ACCELERATION_RMS_THRESHOLD = 5.0;  // RMS (root mean square) thresho
 const int SENSOR_SAMPLING_RATE = 100;
 const float GESTURE_DURATION = 0.5;
 const int NUM_CAPTURED_SAMPLES_PER_GESTURE = GESTURE_DURATION * SENSOR_SAMPLING_RATE;
-const int NUM_FEATURES_PER_SAMPLE = 6;
+const int NUM_FEATURES_PER_SAMPLE = 3;
 const int TOTAL_SAMPLES = NUM_CAPTURED_SAMPLES_PER_GESTURE * NUM_FEATURES_PER_SAMPLE;
 const int SENSOR_SAMPLING_SEPARATION = 1000 / SENSOR_SAMPLING_RATE ;
 const int THRESHOLD_SAMPLE_INDEX =  ((NUM_CAPTURED_SAMPLES_PER_GESTURE / 3) * NUM_FEATURES_PER_SAMPLE); // one-third of data comes before threshold
@@ -113,6 +113,8 @@ unsigned long data_duration;
 void setup() {
   static tflite::MicroErrorReporter micro_error_reporter;
   error_reporter = &micro_error_reporter;
+
+  Serial.begin(9600);
 
 
   if (!IMU.begin()) {
@@ -321,7 +323,7 @@ void loop() {
     error_reporter->Report("Chord: %s", chord_to_play);
     error_reporter->Report("Invoke time: %d", time_after - time_before);
 
-    // Playing the air guitar if strum is detected based on previous chord classified
+    // // Playing the air guitar if strum is detected based on previous chord classified
     // char chord_filename[8];
 
     // if (playSdWav1.isPlaying() == false) {
@@ -334,14 +336,14 @@ void loop() {
     //   delay(10);
     // }
 
-    // // print the play time offset
-    // error_reporter->Report("Playing, now at %d ms", playSdWav1.positionMillis());
+    Serial.println("START AUDIO");
+    Serial.println(chord_to_play);
 
-    // // blink LED and print info while playing
-    // digitalWrite(13, HIGH);
-    // delay(250);
-    // digitalWrite(13, LOW);
-    // delay(250);
+    // blink LED and print info while playing
+    digitalWrite(13, HIGH);
+    delay(250);
+    digitalWrite(13, LOW);
+    delay(250);
   }
   // error_reporter->Report("Memory Consumption (bytes): %d", motion_interpreter->arena_used_bytes());
 }
