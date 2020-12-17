@@ -87,7 +87,8 @@ gm: 1010
 
 The hardware aspect of the project is a core component of the overall system. The circuit diagram of the components and their respective connections are shown below. 
 
-<img src="https://github.com/RobJMal/Air-Guitar-CS249R/blob/main/corrected_circuit_schematic.PNG?raw=true" width=250 align=center>
+<img src="https://github.com/RobJMal/Air-Guitar-CS249R/blob/main/corrected_circuit_schematic.PNG?raw=true" width=300 align=center>
+
 
 This project uses sensors attached to gloves to collect the data and run the application. On one glove the IMU is attached. This is to detect the strumming. The other glove has 4 flex sensors attached, one for each finger except the thumb, and this is used to identify the chords. The gloves have wires running from their pins and is connected to the main board, which contains the MCU and the additional components. 
 
