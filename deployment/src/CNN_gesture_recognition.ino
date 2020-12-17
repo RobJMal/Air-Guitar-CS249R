@@ -289,10 +289,10 @@ void loop() {
     // Collecting data from flex sensors 
     int index = 0;
     while (index < TOTAL_DATA_POINTS_FLEX) {
-      chord_input_tensor->data.f[index++] = analogRead(PIN_INDEX);
-      chord_input_tensor->data.f[index++] = analogRead(PIN_MIDDLE);
-      chord_input_tensor->data.f[index++] = analogRead(PIN_RING);
-      chord_input_tensor->data.f[index++] = analogRead(PIN_PINKY);
+      chord_input_tensor->data.f[index++] = (analogRead(PIN_INDEX) - FLEX_DATA_MIN_VALUE) / FLEX_DATA_DELTA;
+      chord_input_tensor->data.f[index++] = (analogRead(PIN_MIDDLE) - FLEX_DATA_MIN_VALUE) / FLEX_DATA_DELTA;
+      chord_input_tensor->data.f[index++] = (analogRead(PIN_RING) - FLEX_DATA_MIN_VALUE) / FLEX_DATA_DELTA;
+      chord_input_tensor->data.f[index++] = (analogRead(PIN_PINKY) - FLEX_DATA_MIN_VALUE) / FLEX_DATA_DELTA;
       delay(1); /* actual sample rate is 9600 Hz, artficially make it 1000 Hz */
     }
 
