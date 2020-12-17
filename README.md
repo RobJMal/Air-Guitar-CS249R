@@ -86,3 +86,4 @@ gm: 1010
 ## Hardware Design and Setup
 
 This project uses sensors attached to gloves to collect the data and run the application. 
+![alt text](https://github.com/RobJMal/Air-Guitar-CS249R/blob/main/imu_glove.jpg?raw=true)
