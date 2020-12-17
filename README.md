@@ -85,8 +85,8 @@ gm: 1010
 
 ## Hardware Design and Setup
 
-This project uses sensors attached to gloves to collect the data and run the application. On one glove the IMU is attached. This is to detect the strumming. The other glove has 4 flex sensors attached, one for each finger except the thumb, and this is used to identify the chords. 
+This project uses sensors attached to gloves to collect the data and run the application. On one glove the IMU is attached. This is to detect the strumming. The other glove has 4 flex sensors attached, one for each finger except the thumb, and this is used to identify the chords. The gloves have wires running from their pins and is connected to the main board, which contains the MCU and the additional components. 
 
 <img src="https://github.com/RobJMal/Air-Guitar-CS249R/blob/main/imu_glove.jpg?raw=true" width=250 align=left>
-
+<img src="https://github.com/RobJMal/Air-Guitar-CS249R/blob/main/circuit_schematic.jpg?raw=true" width=250 align=right>
 <img src="https://github.com/RobJMal/Air-Guitar-CS249R/blob/main/flex_sensor_glove.jpg?raw=true" width=250 align=right>
