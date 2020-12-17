@@ -77,9 +77,9 @@ const float IMU_DATA_MIN_VALUE = -48.89;
 const float IMU_DATA_MAX_VALUE = 41.48;
 const float IMU_DATA_DELTA = IMU_DATA_MAX_VALUE - IMU_DATA_MIN_VALUE;
 
-const int FLEX_DATA_MIN_VALUE = 308;
-const int FLEX_DATA_MAX_VALUE = 904;
-const int FLEX_DATA_DELTA = FLEX_DATA_MAX_VALUE - FLEX_DATA_MIN_VALUE;
+const float FLEX_DATA_MIN_VALUE = 308.0;
+const float FLEX_DATA_MAX_VALUE = 904.0;
+const float FLEX_DATA_DELTA = FLEX_DATA_MAX_VALUE - FLEX_DATA_MIN_VALUE;
 
 const int PIN_INDEX = 17;
 const int PIN_MIDDLE = 16;
@@ -116,13 +116,9 @@ void setup() {
 
   Serial.begin(9600);
 
-
   if (!IMU.begin()) {
     error_reporter->Report("Failed to initialize IMU!");
-    while (1) {
-      error_reporter->Report("Failed to intialize IMU :(");
-      delay(500);
-    };
+    while (1);
   }
 
   motion_model = tflite::GetModel(g_motion_model);
@@ -141,7 +137,6 @@ void setup() {
   static tflite::ops::micro::AllOpsResolver resolver_motion;
   static tflite::ops::micro::AllOpsResolver resolver_chord; 
 
-
   static tflite::MicroInterpreter static_interpreter_motion(
       motion_model, resolver_motion, tensor_arena_motion, kTensorArenaSize_motion, error_reporter);
   motion_interpreter = &static_interpreter_motion;
@@ -149,7 +144,6 @@ void setup() {
   static tflite::MicroInterpreter static_interpreter_chord(
       chord_model, resolver_chord, tensor_arena_chord, kTensorArenaSize_chord, error_reporter);
   chord_interpreter = &static_interpreter_chord; 
-
 
   TfLiteStatus allocate_status_motion = motion_interpreter->AllocateTensors();
   if (allocate_status_motion != kTfLiteOk) {
@@ -172,19 +166,6 @@ void setup() {
   input_length_chord = chord_input_tensor->bytes / sizeof(float);
   chord_output_tensor = chord_interpreter->output(0); 
 
-  // Setting up SD card 
-  AudioMemory(8);
-  sgtl5000_1.enable();
-  sgtl5000_1.volume(0.45);
-
-  if (!(SD.begin(SDCARD_CS_PIN))) {
-    // while (1) {
-    //   error_reporter_chord->Report("Unable to access the SD card");
-    //   delay(500);
-    // }
-    error_reporter->Report("Unable to access SD Card :(");
-  }
-  pinMode(13, OUTPUT); // LED on pin 13
   delay(1000);
 }
 
@@ -323,19 +304,6 @@ void loop() {
     error_reporter->Report("Chord: %s", chord_to_play);
     error_reporter->Report("Invoke time: %d", time_after - time_before);
 
-    // // Playing the air guitar if strum is detected based on previous chord classified
-    // char chord_filename[8];
-
-    // if (playSdWav1.isPlaying() == false) {
-    //   error_reporter->Report("Start playing");
-
-    //   strcat(chord_filename, chord_to_play);
-    //   strcat(chord_filename, ".WAV");
-    //   playSdWav1.play(chord_filename);
-
-    //   delay(10);
-    // }
-
     Serial.println("START AUDIO");
     Serial.println(chord_to_play);
 
@@ -345,5 +313,4 @@ void loop() {
     digitalWrite(13, LOW);
     delay(250);
   }
-  // error_reporter->Report("Memory Consumption (bytes): %d", motion_interpreter->arena_used_bytes());
 }
