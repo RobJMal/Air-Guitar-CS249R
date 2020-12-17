@@ -1,0 +1,4 @@
+Flex sensor, index new min 600, same max
+
+Header file, model.h, is 619,146 bytes.
+Model is 100392 bytes
