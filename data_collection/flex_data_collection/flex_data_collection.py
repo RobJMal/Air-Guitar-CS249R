@@ -20,7 +20,7 @@ DATA_DIR = "../../data/flex/"
 LABEL = "g"
 
 
-arduino = serial.Serial('COM7', 9600, timeout=.1)
+arduino = serial.Serial(ARDUINO_COM, ARDUINO_PORT, timeout=.1)
 print_to_file = False
 
 with open(DATA_DIR+LABEL+".csv", "ab") as f:
